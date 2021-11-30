@@ -1,0 +1,219 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+
+The Dataset
+YERockfish.csv contains measurements of fish collected from along the Oregon coast
+
+Yelloweye Rockfish (Sebastes rubberimus)
+Length (length; to the nearest cm),
+
+Age (years)
+
+Maturity (Immature and Mature) state of female
+
+Read in the data as a tibble
+```{r}
+fish_data = as_tibble(YERockfish, sep = "\t", header = TRUE)
+fish_data
+```
+
+This data contains a date column. R provides an easy way to manipulate dates.
+
+The field needs to be converted to a format that R will recognize as a date.
+The as.POSIXct() function does this conversion. The function takes two arguments
+The column to convert
+Format of the date. Since dates come in vairous shapes (ex. yyyy/m/d, mm/dd/yy, etc..)
+Use the function as.POSIXct() to convert the date. The approach is exactly the same as converting to factor (as.factor()) or integer (as.integer())
+
+Here you can pass the following format string for the parameter format
+
+%m/%d/%Y
+Bonus: use a dplyr pipeline to mutate the column
+
+```{r}
+?add_column
+```
+
+
+```{r}
+new_date <- as.Date(fish_data$date, "%m/%d/%Y")
+new_fish_data <- add_column(fish_data, new_date, .before = 2) 
+                  
+fish_data_date = subset(new_fish_data, select = -c(date))
+
+head(fish_data_date)
+```
+
+
+```{r}
+correct_date = as.POSIXct(fish_data_date$new_date, "%Y-%m-%d")
+correct_date
+
+correct_date_data <- add_column(fish_data_date, correct_date, .before = 2)
+correct_date_data
+
+correct_fish_data = subset(correct_date_data, select = -c(new_date))
+head(correct_fish_data)
+```
+
+Use the function head() on your modified tibble to make sure the column is now of type dttm (date and time) instead of char
+
+```{r}
+head(correct_fish_data)
+```
+
+Count the number of lines in your file
+
+```{r}
+count(correct_fish_data)
+```
+
+Plot the count of observations per year.
+
+Note that you can easily parse the year from the data using the year() function, which takes a column of dttm datatype
+The function year is part of the lubridate package, which you may need to import
+Hint 1: try the function year() on your date column
+
+Hint 2: Use group by to group the data and n() to count the number of entries in each group
+
+Bonus: use a dplyr pipeline to answer this question.
+
+```{r}
+#Try year() on the date colum
+date_year = year(correct_fish_data$correct_date)
+date_year
+
+#mutate, new column and filter by column
+```
+```{r}
+#This method works
+large_date_sample_data <- correct_fish_data %>%
+  mutate(sample_year = year(correct_date)) %>%
+  filter(sample_year != 2004, sample_year != 2008 )
+large_date_sample_data
+```
+```{r}
+?filter
+```
+
+
+
+```{r}
+year_count <- correct_fish_data %>% 
+    group_by(year(correct_fish_data$correct_date)) %>% 
+    count()
+year_count
+```
+```{r}
+plot(year_count)
+```
+
+
+
+Remove all entries that below to a year for which there are less than 5 entries
+E.g. there is only one entry for 2008, so we can remove it.
+Save the data to a new tibble
+
+```{r}
+large_date_sample_data
+```
+
+```{r}
+# WHY DOESN"T THIS WORK?!
+correct_fish_data %>% 
+  group_by(year(correct_fish_data$correct_date)) %>% 
+  count() %>% 
+  filter(n > 5) %>%
+ungroup(year(correct_fish_data$correct_date))
+```
+
+```{r}
+correct_fish_data %>% filter(correct_fish_data$correct_date, )
+```
+
+
+Count the number of entries and make sure there are less observations
+
+```{r}
+count(large_date_sample_data)
+#made sure there were 4 less. Initial test showed that the pipe was only removing 2004 or 2008
+```
+
+Model the fish maturity using the fish length
+
+i.e. predict maturity from the lengh data
+You can make any changes to the data needed to build this model
+
+```{r}
+numeric_maturity = function(x) {
+    if(x == "Mature"){
+      1
+    }else{
+      0
+    }
+}
+numeric_maturity("Mature")
+numeric_maturity("Immature")
+numeric_maturity("NA")
+```
+
+```{r}
+?mapply
+```
+
+
+```{r}
+mapply(numeric_maturity,large_date_sample_data$maturity)
+```
+
+
+Generate a plot to show the data and the fit of the model (sigmoid)
+
+```{r}
+
+```
+
+What is the length at which the probability of picking a mature fish is 0.5?
+You can eyeball it or can you compute it formally from the logistic regression
+
+```{r}
+
+```
+
+Add an era column to your dataset such that
+
+era has the value "pre_2000" if the year of the observation is pre 2002
+era has the value "era2002 and after" otherwise
+Hint: Check the if_else in dplyr
+
+https://dplyr.tidyverse.org/reference/if_else.html
+Bonus: implement this operation using a pipeline and mutate
+
+```{r}
+
+```
+
+You suspected that some major environmental stressor that occurred in 2002 had an impact on the fish length and maturity
+
+Build a logistic regression for maturity as an outcome using era and length as predictive variables
+
+Make sure your formula accounts for interactions
+Use an ANOVA to test whether maturity is a function of both length and era
+
+Does the maturity differ between the two eras? i.e. is the era model coefficient significant?
+
+```{r}
+
+```
+
+Final note:
+This practical is inspired from: http://derekogle.com/IFAR/supplements/maturity/index.html#fitting-the-logistic-regression-model
+
+The link above contains most answers, so please do not read until you are done with this practical.
