@@ -165,26 +165,73 @@ numeric_maturity("NA")
 ```
 
 ```{r}
-?mapply
+maturity_tibble = tibble(large_date_sample_data$length, large_date_sample_data$age, large_date_sample_data$maturity)
+maturity_tibble
+```
+
+```{r}
+no_na_maturity = na.omit(maturity_tibble)
+no_na_maturity
 ```
 
 
 ```{r}
-mapply(numeric_maturity,large_date_sample_data$maturity)
+numeric = mapply(numeric_maturity, no_na_maturity$`large_date_sample_data$maturity`)
+numeric
+```
+```{r}
+numeric_no_na = tibble(no_na_maturity, numeric)
+numeric_no_na
+```
+
+```{r}
+lm(numeric_no_na$numeric~numeric_no_na$`large_date_sample_data$length`)
+```
+
+
+```{r}
+ggplot()+
+  geom_point(aes(x = numeric_no_na$`large_date_sample_data$length`, y = numeric_no_na$numeric)) +
+  geom_hline(yintercept = 0.5, linetype= "dashed", alpha=0.6, size = 1) +
+  geom_abline(intercept = -0.52343, slope = 0.02874, color = "red", size = 1) +
+  xlab("Length") +
+  ylab ("Status") +
+  theme(text = element_text(size = 15))
 ```
 
 
 Generate a plot to show the data and the fit of the model (sigmoid)
 
 ```{r}
-
+logistic_reg_model = glm(data = numeric_no_na, numeric~numeric_no_na$`large_date_sample_data$length`, family = "binomial")
+summary(logistic_reg_model)
 ```
+
+```{r}
+logistic_reg_model$coefficients
+```
+
+```{r}
+beta_0 = logistic_reg_model$coefficients[1]
+beta_1 = logistic_reg_model$coefficients[2]
+
+x_axis = seq(min(numeric_no_na$`large_date_sample_data$length`)-3, max(numeric_no_na$`large_date_sample_data$length`)+3, 0.05)
+g_x = 1/(1+exp(-(beta_0 + beta_1 * x_axis)))
+
+ggplot()+
+  geom_point(aes(x = numeric_no_na$`large_date_sample_data$length`, y = numeric_no_na$numeric)) +
+  geom_line(aes(x_axis, g_x)) +
+  xlab("Length") +
+  ylab("Maturity") +
+  theme(text = element_text(size = 22))
+```
+
 
 What is the length at which the probability of picking a mature fish is 0.5?
 You can eyeball it or can you compute it formally from the logistic regression
 
 ```{r}
-
+# At about 38 the probability of picking a mature fish is 0.5. 
 ```
 
 Add an era column to your dataset such that
@@ -197,7 +244,29 @@ https://dplyr.tidyverse.org/reference/if_else.html
 Bonus: implement this operation using a pipeline and mutate
 
 ```{r}
+era_2002 <- function(x){
+    if(x < 2002){
+      "pre_2000"
+    }else{
+      "era2002"
+    }
+}
+era_2002("2000")
+era_2002("1999")
+era_2002("2002")
+era_2002("2003")
+```
 
+```{r}
+era <- mapply(era_2002, large_date_sample_data$sample_year)
+
+```
+
+```{r}
+era_large_data <- large_date_sample_data %>%
+  mutate(era, .keep = "all" )
+
+era_large_data
 ```
 
 You suspected that some major environmental stressor that occurred in 2002 had an impact on the fish length and maturity
@@ -210,7 +279,8 @@ Use an ANOVA to test whether maturity is a function of both length and era
 Does the maturity differ between the two eras? i.e. is the era model coefficient significant?
 
 ```{r}
-
+era_maturity = era_large_data %>%
+    mutate(-(correct_date))
 ```
 
 Final note:
